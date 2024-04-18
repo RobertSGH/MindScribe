@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-color: #0d171c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-color: #0d171c;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: var(--background-color);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* @layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+} */
