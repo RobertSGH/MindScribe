@@ -7,10 +7,13 @@ const PipelineSingleton = (() => {
 
   async function getInstance() {
     if (instance === null) {
+      console.log('Initializing model instance...');
       instance = await pipeline(
         'text2text-generation',
-        'Xenova/LaMini-Flan-T5-783M'
+        'Xenova/LaMini-Flan-T5-783M',
+        { cacheDirectory: '/tmp' } // Assuming `pipeline` accepts a `cacheDirectory` option
       );
+      console.log('Model instance ready.');
     }
     return instance;
   }
