@@ -1,40 +1,77 @@
 'use client';
 import Button from '@/ui/Button';
 import RootLayout from '@/ui/Layout';
-import { useState } from 'react';
-import axios from 'axios';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import SectionHeading from '@/components/SectionHeading';
+import { MutableRefObject } from 'react';
 
 const MyAi = () => {
   const [text, setText] = useState('');
   const [result, setResult] = useState('');
   const [loading, setLoading] = useState<boolean>(false);
 
-  const generateText = async (input?: string) => {
-    const finalInput = typeof input === 'string' ? input : text;
+  const worker: MutableRefObject<Worker | null> = useRef<Worker | null>(null);
 
-    if (!finalInput) return;
+  useEffect(() => {
+    const newWorker = new Worker(
+      new URL('../../utils/webworker.js', import.meta.url),
+      { type: 'module' }
+    );
+    worker.current = newWorker;
 
-    setText(finalInput);
-    setLoading(true);
-
-    try {
-      const response = await axios.post('/api/route', { text: finalInput });
-
-      if (Array.isArray(response.data)) {
-        setResult(response.data.map((item) => item.generated_text).join('\n'));
-      } else {
-        setResult(response.data.error || 'Unexpected response format');
+    const onMessageReceived = (e: MessageEvent) => {
+      console.log('Message from worker:', e.data);
+      switch (e.data.status) {
+        case 'progress':
+          console.log(`Loading model: ${e.data.progress}%`);
+          break;
+        case 'done':
+          console.log(`Component loaded: ${e.data.file}`);
+          break;
+        case 'complete':
+          if (
+            e.data.output &&
+            Array.isArray(e.data.output.generated_text) &&
+            e.data.output.generated_text.length > 0
+          ) {
+            setResult(e.data.output.generated_text[0].generated_text);
+          } else {
+            console.error('Invalid or missing generated text:', e.data);
+            setResult('Error: Invalid or missing generated text.');
+          }
+          setLoading(false);
+          setText('');
+          break;
+        default:
+          console.error('Received unknown status:', e.data);
+          setResult(`Error: Unknown status ${e.data.status} received.`);
+          setLoading(false);
+          setText('');
       }
-    } catch (error) {
-      console.error('Failed to generate content:', error);
-      setResult('Failed to generate content. Please try again.');
-    } finally {
-      setLoading(false);
-      setText('');
-    }
-  };
+    };
 
+    worker.current.addEventListener('message', onMessageReceived);
+
+    return () => {
+      if (worker.current) {
+        worker.current.removeEventListener('message', onMessageReceived);
+        worker.current.terminate(); // Optionally terminate the worker if it's no longer needed
+      }
+    };
+  }, []);
+
+  const generateText = useCallback(
+    (input: string = text) => {
+      if (!input) return;
+
+      setLoading(true);
+      setText(input);
+      if (worker.current) {
+        worker.current.postMessage({ text: input });
+      }
+    },
+    [text]
+  );
   const predefinedQuestions = [
     'How can I improve my email writing skills?',
     'What are the best practices for lifelong learning?',
@@ -75,12 +112,13 @@ const MyAi = () => {
           />
 
           <Button
-            label={loading ? '🕒' : 'Go'}
+            label='Go'
             onClick={() => generateText()}
             disabled={loading}
             variant='primary'
             size='sm'
-          ></Button>
+            isLoading={loading}
+          />
         </div>
 
         <div>

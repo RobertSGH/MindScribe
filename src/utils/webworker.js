@@ -1,38 +1,42 @@
-import { pipeline } from '@xenova/transformers';
+import { pipeline, env } from '@xenova/transformers';
 
-// Use the Singleton pattern to enable lazy construction of the pipeline.
-// NOTE: We wrap the class in a function to prevent code duplication (see below).
-const PipelineSingleton = (() => {
-  let instance = null; // Move instance inside the function to utilize closure
+env.allowLocalModels = false;
 
-  async function getInstance() {
-    if (instance === null) {
-      console.log('Initializing model instance...');
-      instance = await pipeline(
-        'text2text-generation',
-        'Xenova/LaMini-Flan-T5-783M',
-        { cacheDirectory: '/tmp' } // Assuming `pipeline` accepts a `cacheDirectory` option
-      );
-      console.log('Model instance ready.');
+class PipelineSingleton {
+  static task = 'text2text-generation';
+  static model = 'Xenova/LaMini-Flan-T5-783M';
+  static instance = null;
+
+  static async getInstance(progress_callback = null) {
+    if (this.instance === null) {
+      this.instance = await pipeline(this.task, this.model, {
+        progress_callback,
+      });
     }
-    return instance;
+    return this.instance;
   }
+}
 
-  return {
-    // This method now directly uses the instance to perform the operation with dynamic parameters
-    async generate(
-      text,
-      generationParams = {
-        max_new_tokens: 800,
-        temperature: 0.9,
-        repetition_penalty: 2.0,
-        no_repeat_ngram_size: 3,
-      }
-    ) {
-      const pipelineInstance = await getInstance();
-      return pipelineInstance(text, generationParams);
+self.addEventListener('message', async (event) => {
+  let generator = await PipelineSingleton.getInstance((progress) => {
+    self.postMessage({ status: 'progress', progress: progress * 100 });
+  });
+  console.log('Text generation started with input:', event.data.text);
+
+  // Simulating text generation
+  let output = await generator(event.data.text, {
+    max_new_tokens: 800,
+    temperature: 0.9,
+    repetition_penalty: 2.0,
+    no_repeat_ngram_size: 3,
+  });
+  console.log('Generated output:', output);
+
+  // Post the completion message with generated text
+  self.postMessage({
+    status: 'complete',
+    output: {
+      generated_text: output,
     },
-  };
-})();
-
-export default PipelineSingleton;
+  });
+});

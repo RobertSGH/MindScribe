@@ -1,4 +1,5 @@
 import React from 'react';
+import LoadingSpinner from './LoadingSpinner';
 
 interface ButtonProps {
   label?: string;
@@ -60,9 +61,7 @@ const Button = ({
   // Render button content based on props
   const content = () => {
     if (isLoading) {
-      return (
-        <div className='animate-spin mx-2 h-5 w-5 border-2 rounded-full border-blue-500'></div>
-      );
+      return <LoadingSpinner />;
     }
 
     return (

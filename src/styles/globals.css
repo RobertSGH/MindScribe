@@ -28,3 +28,40 @@ html {
     text-wrap: balance;
   }
 } */
+
+@keyframes dot-flashing {
+  0% {
+    background-color: #ffffff;
+  }
+  50%,
+  100% {
+    background-color: transparent;
+  }
+}
+
+.spinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: transparent;
+  margin: 0 2px;
+  animation: dot-flashing 1s infinite linear alternate;
+}
+
+.dot-one {
+  animation-delay: 0s;
+}
+
+.dot-two {
+  animation-delay: 0.2s;
+}
+
+.dot-three {
+  animation-delay: 0.4s;
+}
